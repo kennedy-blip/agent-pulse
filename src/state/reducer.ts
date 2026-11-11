@@ -1,4 +1,4 @@
-import type { HitlRequest, TerminalLine } from '../types';
+import type { HitlRequest, PullRequest, TerminalLine } from '../types';
 import { uid } from '../lib/utils';
 import { TICK_MS, TIME_SCALE } from './context';
 import type { Action, AppState } from './types';
@@ -14,6 +14,10 @@ function sysLine(agentId: string, text: string, stream: TerminalLine['stream'] =
 
 function hitlApprovedOutput(req: HitlRequest): string[] {
   return [`$ ${req.command}`, `✓ executed with human sign-off (${req.id})`];
+}
+
+export function isMergeable(pr: PullRequest): boolean {
+  return pr.status === 'approved' && pr.checks.every((c) => c.status === 'passed');
 }
 
 export function reducer(state: AppState, action: Action): AppState {
@@ -145,7 +149,7 @@ export function reducer(state: AppState, action: Action): AppState {
         prs: state.prs.map((p) => (p.id === action.id ? { ...p, comments: [...p.comments, action.comment] } : p)),
       };
     case 'MERGE_APPROVED':
-      return { ...state, prs: state.prs.map((p) => (p.status === 'approved' ? { ...p, status: 'merged' } : p)) };
+      return { ...state, prs: state.prs.map((p) => (isMergeable(p) ? { ...p, status: 'merged' } : p)) };
 
     case 'ADD_ENDPOINT':
       return { ...state, endpoints: [...state.endpoints, action.endpoint] };

@@ -14,6 +14,7 @@ import {
 import type { ReactNode } from 'react';
 import { cn } from '../lib/utils';
 import { useStore } from '../state/context';
+import { isMergeable } from '../state/reducer';
 import type { TabId } from '../types';
 import { Button, StatusDot } from './ui';
 
@@ -39,7 +40,7 @@ export function Header() {
   const { state, dispatch, toast } = useStore();
   const active = state.agents.filter((a) => a.status === 'running').length;
   const blocked = state.agents.filter((a) => a.status === 'blocked').length;
-  const approved = state.prs.filter((p) => p.status === 'approved');
+  const approved = state.prs.filter(isMergeable);
   const pendingHitl = state.hitl.filter((h) => h.status === 'pending').length;
   const openPrs = state.prs.filter((p) => p.status === 'open' || p.status === 'changes_requested').length;
 
