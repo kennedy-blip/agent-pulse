@@ -72,7 +72,16 @@ export function reducer(state: AppState, action: Action): AppState {
         ...state,
         briefs: state.briefs.filter((b) => b.id !== action.id),
         subtasks: state.subtasks.filter((s) => s.briefId !== action.id),
-        agents: state.agents.map((a) => (a.currentSubtaskId && ids.has(a.currentSubtaskId) ? { ...a, currentSubtaskId: null } : a)),
+        agents: state.agents.map((a) =>
+          a.currentSubtaskId && ids.has(a.currentSubtaskId)
+            ? { ...a, currentSubtaskId: null, status: a.status === 'blocked' ? 'running' : a.status }
+            : a,
+        ),
+        hitl: state.hitl.map((h) =>
+          h.briefId === action.id && h.status === 'pending'
+            ? { ...h, status: 'rejected', decidedAt: Date.now(), decisionNote: 'Brief deleted' }
+            : h,
+        ),
         selectedBriefId: state.selectedBriefId === action.id ? null : state.selectedBriefId,
       };
     }
