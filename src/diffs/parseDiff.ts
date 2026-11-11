@@ -8,7 +8,7 @@ export function parseHunks(patch: string): DiffHunk[] {
   let current: DiffHunk | null = null;
   let oldNo = 0;
   let newNo = 0;
-  for (const raw of patch.replace(/^\n/, '').split('\n')) {
+  for (const raw of patch.replace(/^\n/, '').replace(/\n$/, '').split('\n')) {
     const m = HUNK_RE.exec(raw);
     if (m) {
       oldNo = Number(m[1]);
@@ -17,7 +17,7 @@ export function parseHunks(patch: string): DiffHunk[] {
       hunks.push(current);
       continue;
     }
-    if (!current) continue;
+    if (!current || raw.startsWith('\\')) continue;
     const marker = raw[0];
     const content = raw.slice(1);
     let line: DiffLine;

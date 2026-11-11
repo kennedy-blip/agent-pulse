@@ -49,6 +49,14 @@ function BriefCard({ brief }: { brief: Brief }) {
     toast('info', 'Brief dispatched', `${brief.title} → ${subtasks.length} sub-tasks`);
   };
 
+  const retryBrief = () => {
+    const subtasks = subs.length ? subs : decomposeBrief(brief, state.agents);
+    if (!subs.length) dispatch({ type: 'SET_SUBTASKS', briefId: brief.id, subtasks });
+    dispatch({ type: 'RETRY_BRIEF', id: brief.id });
+    wakeIdleAgents(subtasks, state.agents, dispatch);
+    toast('info', 'Retrying brief', brief.title);
+  };
+
   const viewInSwarm = () => {
     dispatch({ type: 'SELECT_BRIEF', id: brief.id });
     dispatch({ type: 'SET_TAB', tab: 'swarm' });
@@ -130,7 +138,7 @@ function BriefCard({ brief }: { brief: Brief }) {
           </Button>
         )}
         {(brief.status === 'failed' || brief.status === 'cancelled') && (
-          <Button size="sm" variant="warning" icon={<RotateCcw className="size-3.5" />} onClick={() => { dispatch({ type: 'RETRY_BRIEF', id: brief.id }); wakeIdleAgents(subs, state.agents, dispatch); toast('info', 'Retrying brief', brief.title); }}>
+          <Button size="sm" variant="warning" icon={<RotateCcw className="size-3.5" />} onClick={retryBrief}>
             Retry
           </Button>
         )}

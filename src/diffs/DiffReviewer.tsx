@@ -32,11 +32,55 @@ export function DiffReviewer() {
   const [revisionNote, setRevisionNote] = useState('');
 
   const prs = state.prs.filter((p) => statusFilter === 'all' || p.status === statusFilter);
-  const pr = state.prs.find((p) => p.id === state.selectedPrId) ?? prs[0];
+  const pr = prs.find((p) => p.id === state.selectedPrId) ?? prs[0];
   const agentName = (id: string) => state.agents.find((a) => a.id === id)?.name ?? id;
 
-  if (!pr) {
+  if (!state.prs.length) {
     return <Card><EmptyState icon={<GitPullRequest className="size-5" />} title="No pull requests yet" body="Agents open PRs automatically when a brief completes." /></Card>;
+  }
+
+  const listCard = (
+      <Card className="h-fit lg:sticky lg:top-36">
+        <CardHeader icon={<GitPullRequest className="size-4 text-swarm" />} title="Pull Requests" subtitle={`${state.prs.length} total · ${state.prs.filter((p) => p.status === 'approved').length} approved`} />
+        <div className="flex gap-1 overflow-x-auto border-b border-white/5 px-3 py-2 scrollbar-thin">
+          {(['all', 'open', 'changes_requested', 'approved', 'merged'] as const).map((s) => (
+            <button key={s} type="button" aria-pressed={statusFilter === s} onClick={() => setStatusFilter(s)} className={cn('shrink-0 rounded-md px-2 py-1 text-[11px] font-medium', statusFilter === s ? 'bg-swarm/20 text-violet-200' : 'text-slate-400 hover:bg-white/5')}>
+              {s === 'all' ? 'All' : PR_STATUS_META[s].label}
+            </button>
+          ))}
+        </div>
+        <ul className="max-h-[50vh] divide-y divide-white/5 overflow-y-auto scrollbar-thin lg:max-h-[calc(100vh-280px)]">
+          {!prs.length && <li className="px-4 py-6 text-center text-xs text-slate-500">No pull requests match this filter.</li>}
+          {prs.map((p) => {
+            const s = diffStats(p.files);
+            return (
+              <li key={p.id}>
+                <button type="button" onClick={() => dispatch({ type: 'SELECT_PR', id: p.id })} className={cn('w-full px-4 py-3 text-left transition', p.id === pr?.id ? 'bg-swarm/[0.08]' : 'hover:bg-white/[0.03]')}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[11px] text-slate-500">#{p.number}</span>
+                    <Badge tone={PR_STATUS_META[p.status].tone}>{PR_STATUS_META[p.status].label}</Badge>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-xs font-medium text-slate-200">{p.title}</p>
+                  <div className="mt-1.5 flex items-center gap-2 font-mono text-[10px]">
+                    <span className="text-cyan-300/80">{p.repo}</span>
+                    <span className="text-emerald-400">+{s.additions}</span>
+                    <span className="text-rose-400">−{s.deletions}</span>
+                  </div>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+  );
+
+  if (!pr) {
+    return (
+      <div className="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
+        {listCard}
+        <Card><EmptyState icon={<GitPullRequest className="size-5" />} title="No matching pull requests" body="Pick another status filter to review a PR." /></Card>
+      </div>
+    );
   }
 
   const stats = diffStats(pr.files);
@@ -77,37 +121,7 @@ export function DiffReviewer() {
 
   return (
     <div className="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
-      <Card className="h-fit lg:sticky lg:top-36">
-        <CardHeader icon={<GitPullRequest className="size-4 text-swarm" />} title="Pull Requests" subtitle={`${state.prs.length} total · ${state.prs.filter((p) => p.status === 'approved').length} approved`} />
-        <div className="flex gap-1 overflow-x-auto border-b border-white/5 px-3 py-2 scrollbar-thin">
-          {(['all', 'open', 'changes_requested', 'approved', 'merged'] as const).map((s) => (
-            <button key={s} type="button" aria-pressed={statusFilter === s} onClick={() => setStatusFilter(s)} className={cn('shrink-0 rounded-md px-2 py-1 text-[11px] font-medium', statusFilter === s ? 'bg-swarm/20 text-violet-200' : 'text-slate-400 hover:bg-white/5')}>
-              {s === 'all' ? 'All' : PR_STATUS_META[s].label}
-            </button>
-          ))}
-        </div>
-        <ul className="max-h-[50vh] divide-y divide-white/5 overflow-y-auto scrollbar-thin lg:max-h-[calc(100vh-280px)]">
-          {prs.map((p) => {
-            const s = diffStats(p.files);
-            return (
-              <li key={p.id}>
-                <button type="button" onClick={() => dispatch({ type: 'SELECT_PR', id: p.id })} className={cn('w-full px-4 py-3 text-left transition', p.id === pr.id ? 'bg-swarm/[0.08]' : 'hover:bg-white/[0.03]')}>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-[11px] text-slate-500">#{p.number}</span>
-                    <Badge tone={PR_STATUS_META[p.status].tone}>{PR_STATUS_META[p.status].label}</Badge>
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-xs font-medium text-slate-200">{p.title}</p>
-                  <div className="mt-1.5 flex items-center gap-2 font-mono text-[10px]">
-                    <span className="text-cyan-300/80">{p.repo}</span>
-                    <span className="text-emerald-400">+{s.additions}</span>
-                    <span className="text-rose-400">−{s.deletions}</span>
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </Card>
+      {listCard}
 
       <div className="min-w-0 space-y-4">
         <Card>
